@@ -10,6 +10,7 @@
 
 ## TODO
 ### data_processing.py
-collate_fn 만들기\
-data size가 균일하지 않으므로, 이를 위한 collate_fn 필요\
-padding or crop or stretch -> 아마 padding 아니면 stretch 사용
+collate_fn 만들기 ✔\
+data size가 균일하지 않으므로, 이를 위한 collate_fn 필요 ✔\
+padding or crop or stretch -> 아마 padding 아니면 stretch 사용 ✔\
+-> Lanzcos 보간법 이용하여 resize 후 패딩하는 방식 사용
