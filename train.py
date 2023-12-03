@@ -3,12 +3,15 @@ import tqdm
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from torch.utils.data import DataLoader
+from torch.utils.data.dataset import Subset
 from torchmetrics.aggregation import MeanMetric
 from torchmetrics import Accuracy
-from data_processing import load_data
+import torchvision.transforms as T
+from data_processing import TreeDataset
+import pandas as pd
 
-def train(model, epochs):
-    train_loader, val_loader = load_data(batch_size=128)
+def train(model, epochs, train_loader, val_loader):
     optimizer = optim.AdamW(model.parameters(), lr=1e3, betas=(0.9, 0.999))
     metric = Accuracy(task='binary', num_classes=2)
     loss = nn.BCEWithLogitsLoss()
@@ -40,6 +43,20 @@ def train(model, epochs):
         # save model
         checkpoint_path = f'checkpoint/{model}-{optimizer}with{loss}_last.pt'
         save_model(checkpoint_path, model, optimizer, scheduler, epoch+1)
+
+    return train_summary, val_summary
+
+def eval(model, test_loader):
+    metric = Accuracy(task='binary', num_classes=2)
+    loss = nn.BCEWithLogitsLoss()
+    test_summary = eval_one_epoch(
+        model, test_loader, metric, loss, 'cuda'
+    )
+    log = (f'test_loss: {test_summary["loss"]:.4f}, '
+           + f'test_accuracy: {test_summary["accuracy"]:.4f}')
+    print(log)
+    logging.info(log)
+    return test_summary
 
 def train_one_epoch(model, loader, metric_fn, loss_fn, device, optimizer, scheduler):
     # set model to train mode    
@@ -116,3 +133,53 @@ def save_model(path, model, optimizer, scheduler, epoch):
         'scheduler': scheduler.state_dict(),
     }
     torch.save(state_dict, path)
+
+def kfold(model=None, train_dataset:TreeDataset=None, test_dataset = None, k_fold=5, batch_size=None):
+    train_transform = train_dataset.transform
+    val_transform = T.Compose([])
+    train_summaries = pd.Series()
+    val_summaries = pd.Series()
+    total_size = len(train_dataset)
+    fraction = 1/k_fold
+    seg = int(total_size * fraction)
+    # tr:train,val:valid; r:right,l:left;  eg: trrr: right index of right side train subset 
+    # index: [trll,trlr],[vall,valr],[trrl,trrr]
+    for i in range(k_fold):
+        trll = 0
+        trlr = i * seg
+        vall = trlr
+        valr = i * seg + seg
+        trrl = valr
+        trrr = total_size
+        # msg
+#         print("train indices: [%d,%d),[%d,%d), test indices: [%d,%d)" 
+#               % (trll,trlr,trrl,trrr,vall,valr))
+        
+        train_left_indices = list(range(trll,trlr))
+        train_right_indices = list(range(trrl,trrr))
+        
+        train_indices = train_left_indices + train_right_indices
+        val_indices = list(range(vall,valr))
+
+        train_set = Subset(train_dataset,train_indices)
+        train_dataset.change_transform(val_transform)
+        val_set = Subset(train_dataset,val_indices)
+        train_dataset.change_transform(train_transform)
+
+#         print(len(train_set),len(val_set))
+#         print()
+        
+        train_loader = DataLoader(train_set, batch_size=batch_size,
+                                          shuffle=True, num_workers=4)
+        val_loader = DataLoader(val_set, batch_size=batch_size,
+                                          shuffle=True, num_workers=4)
+        train_summary, val_summary = train(model=model, epochs=1,
+                                           train_loader=train_loader, val_loader=val_loader)
+        train_summaries.at[i] = train_summary
+        val_summaries.at[i] = val_summary
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, num_workers=4)
+    test_summary = eval(model, test_loader)
+
+    return train_summaries, val_summaries, test_summary
+
+        

@@ -1,7 +1,8 @@
 import torchvision.transforms as T
-from torch.utils.data import DataLoader, Dataset, TensorDataset
+from torch.utils.data import DataLoader, Dataset
+from torch.utils.data.dataset import Subset
 from torch import Tensor
-from typing import Literal, Union
+from typing import Literal, Union, Sequence
 import glob
 from PIL.Image import open, Image, Transpose, Resampling
 import PIL.Image
@@ -12,35 +13,37 @@ PIL.Image.MAX_IMAGE_PIXELS = None
 def load_data(batch_size:int)->tuple[DataLoader,DataLoader]:
     train_transform = T.Compose([
             T.RandomHorizontalFlip(),
-            T.RandomResizedCrop((32,32),scale = (0.875,1)),
-            T.AutoAugment(T.AutoAugmentPolicy.CIFAR10),
-            T.ToTensor(),
+            T.RandomResizedCrop((1168,669),scale = (0.875,1)),
+            T.RandAugment(num_ops=2, magnitude=9),
         ])
-    train_data = open_data("train")
+    train_data = open_data("train",train_transform)
     train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True, drop_last=True,
-                              num_workers=2, collate_fn= tree_collate_fn)
+                              num_workers=1, collate_fn= tree_collate_fn)
     val_transform = T.Compose([
-        T.ToTensor(),
     ])
-    val_data = open_data("test")
-    val_loader = DataLoader(val_data, batch_size=batch_size, collate_fn= tree_collate_fn)
+    val_data = open_data("test", val_transform)
+    val_loader = DataLoader(val_data, batch_size=batch_size, collate_fn= tree_collate_fn, shuffle=True)
 
     return train_loader,val_loader
 
 class TreeDataset(Dataset):
-    def __init__(self, data:list[Image], label:Tensor):
+    def __init__(self, data:list[Image], label:Tensor, transform=None):
         self.data = data
         self.label = label
-    
+        self.transform = transform
+
     def __len__(self):
         return len(self.label)
     
     def __getitem__(self, idx) -> tuple[Image, Tensor]:
-        data = self.data[idx]
+        data = self.transform(self.data[idx])
         label = self.label[idx]
         return data, label
     
-def open_data(dir:Literal["train","test"]) -> TreeDataset:
+    def change_transform(self, transform):
+        self.transform = transform
+    
+def open_data(dir:Literal["train","test"], transform) -> TreeDataset:
     '''
     dir : "train" or "test"
     '''
@@ -49,7 +52,7 @@ def open_data(dir:Literal["train","test"]) -> TreeDataset:
     
     data_list = healthy_list + disease_list
     label_list = torch.cat([torch.zeros(len(healthy_list)),torch.ones(len(disease_list))])
-    return TreeDataset(data_list,label_list)
+    return TreeDataset(data_list,label_list,transform)
 
 def tree_collate_fn(samples:TreeDataset):
     collate_X = []
