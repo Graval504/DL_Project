@@ -11,12 +11,7 @@ import torchvision.transforms as T
 from data_processing import TreeDataset
 import pandas as pd
 
-def train(model, epochs, train_loader, val_loader):
-    optimizer = optim.AdamW(model.parameters(), lr=1e3, betas=(0.9, 0.999))
-    metric = Accuracy(task='binary', num_classes=2)
-    loss = nn.BCEWithLogitsLoss()
-    scheduler = optim.lr_scheduler.CosineAnnealingLR(
-        optimizer, T_max=epochs * len(train_loader))
+def train(model, epochs, train_loader, val_loader, metric, loss, optimizer, scheduler):
 
     for epoch in range(epochs):
         # train one epoch
@@ -46,9 +41,7 @@ def train(model, epochs, train_loader, val_loader):
 
     return train_summary, val_summary
 
-def eval(model, test_loader):
-    metric = Accuracy(task='binary', num_classes=2)
-    loss = nn.BCEWithLogitsLoss()
+def eval(model, test_loader, metric, loss):
     test_summary = eval_one_epoch(
         model, test_loader, metric, loss, 'cuda'
     )
@@ -134,7 +127,8 @@ def save_model(path, model, optimizer, scheduler, epoch):
     }
     torch.save(state_dict, path)
 
-def kfold(model=None, train_dataset:TreeDataset=None, test_dataset = None, k_fold=5, batch_size=None):
+def kfold(model:nn.Module=None, train_dataset:TreeDataset=None, test_dataset:TreeDataset= None, k_fold=5, batch_size:int=10, epochs=10):
+    model = model.to("cuda")
     train_transform = train_dataset.transform
     val_transform = T.Compose([])
     train_summaries = pd.Series()
@@ -142,6 +136,13 @@ def kfold(model=None, train_dataset:TreeDataset=None, test_dataset = None, k_fol
     total_size = len(train_dataset)
     fraction = 1/k_fold
     seg = int(total_size * fraction)
+
+    optimizer = optim.AdamW(model.parameters(), lr=1e3, betas=(0.9, 0.999))
+    metric = Accuracy(task='binary', num_classes=2)
+    loss = nn.BCEWithLogitsLoss()
+    
+
+    metric = metric.to("cuda")
     # tr:train,val:valid; r:right,l:left;  eg: trrr: right index of right side train subset 
     # index: [trll,trlr],[vall,valr],[trrl,trrr]
     for i in range(k_fold):
@@ -170,15 +171,17 @@ def kfold(model=None, train_dataset:TreeDataset=None, test_dataset = None, k_fol
 #         print()
         
         train_loader = DataLoader(train_set, batch_size=batch_size,
-                                          shuffle=True, num_workers=4)
+                                          shuffle=True, num_workers=1)
+        scheduler = optim.lr_scheduler.CosineAnnealingLR(
+        optimizer, T_max=epochs * len(train_loader))
         val_loader = DataLoader(val_set, batch_size=batch_size,
-                                          shuffle=True, num_workers=4)
-        train_summary, val_summary = train(model=model, epochs=1,
-                                           train_loader=train_loader, val_loader=val_loader)
+                                          shuffle=True, num_workers=1)
+        train_summary, val_summary = train(model=model, epochs=epochs, train_loader=train_loader, val_loader=val_loader,
+                                           metric=metric, loss=loss, optimizer=optimizer, scheduler=scheduler)
         train_summaries.at[i] = train_summary
         val_summaries.at[i] = val_summary
-    test_loader = DataLoader(test_dataset, batch_size=batch_size, num_workers=4)
-    test_summary = eval(model, test_loader)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, num_workers=1)
+    test_summary = eval(model, test_loader, metric=metric, loss=loss)
 
     return train_summaries, val_summaries, test_summary
 

@@ -10,10 +10,13 @@ import torch
 
 PIL.Image.MAX_IMAGE_PIXELS = None
 
+XLEN = 1168
+YLEN = 669
+
 def load_data(batch_size:int)->tuple[DataLoader,DataLoader]:
     train_transform = T.Compose([
             T.RandomHorizontalFlip(),
-            T.RandomResizedCrop((1168,669),scale = (0.875,1)),
+            T.RandomResizedCrop((XLEN, YLEN),scale = (0.875,1)),
             T.RandAugment(num_ops=2, magnitude=9),
         ])
     train_data = open_data("train",train_transform)
@@ -57,8 +60,6 @@ def open_data(dir:Literal["train","test"], transform) -> TreeDataset:
 def tree_collate_fn(samples:TreeDataset):
     collate_X = []
     collate_y = []
-    xlen = 1168
-    ylen = 669
     for data, label in samples:
         x, y = data.size
         if x < y:
@@ -66,19 +67,19 @@ def tree_collate_fn(samples:TreeDataset):
             buf = x
             x = y
             y = buf
-        if 1168*y < 669*x:
-            y = xlen*y//x
-            diff = ylen-y
-            data = data.resize((xlen,y),Resampling.LANCZOS)
-            zero_pad1 = torch.zeros(size=(3, diff//2, 1168))
-            zero_pad2 = torch.zeros(size=(3, diff//2+diff%2, 1168))
+        if XLEN*y < YLEN*x:
+            y = XLEN*y//x
+            diff = YLEN-y
+            data = data.resize((XLEN,y),Resampling.LANCZOS)
+            zero_pad1 = torch.zeros(size=(3, diff//2, XLEN))
+            zero_pad2 = torch.zeros(size=(3, diff//2+diff%2, XLEN))
             catdim = 1
         else:
-            x = ylen*x//y
-            diff = xlen-x
-            data = data.resize((x,ylen),Resampling.LANCZOS)
-            zero_pad1 = torch.zeros(size=(3, 669, diff//2))
-            zero_pad2 = torch.zeros(size=(3, 669, diff//2+diff%2))
+            x = YLEN*x//y
+            diff = XLEN-x
+            data = data.resize((x,YLEN),Resampling.LANCZOS)
+            zero_pad1 = torch.zeros(size=(3, YLEN, diff//2))
+            zero_pad2 = torch.zeros(size=(3, YLEN, diff//2+diff%2))
             catdim = 2
         data = T.ToTensor()(data)
         collate_X.append(torch.cat([zero_pad1, data, zero_pad2], dim=catdim))
