@@ -4,12 +4,12 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
-from torch.utils.data.dataset import Subset
 from torchmetrics.aggregation import MeanMetric
 from torchmetrics import Accuracy
 import torchvision.transforms as T
-from data_processing import TreeDataset
+from data_processing import TreeDataset, TreeSubset
 import pandas as pd
+import copy
 
 def train(model, epochs, train_loader, val_loader, metric, loss, optimizer, scheduler):
 
@@ -36,7 +36,7 @@ def train(model, epochs, train_loader, val_loader, metric, loss, optimizer, sche
         logging.info(log)
 
         # save model
-        checkpoint_path = f'checkpoint/{type(model).__name__}-{type(optimizer).__name__}with{type(loss).__name__}_last.pt'
+        checkpoint_path = f'checkpoint/{type(model).__name__}_last.pt'
         save_model(checkpoint_path, model, optimizer, scheduler, epoch+1)
 
     return train_summary, val_summary
@@ -127,25 +127,23 @@ def save_model(path, model, optimizer, scheduler, epoch):
     }
     torch.save(state_dict, path)
 
-def kfold(model:nn.Module=None, train_dataset:TreeDataset=None, test_dataset:TreeDataset= None, k_fold=5, batch_size:int=10, epochs=10):
-    model = model.to("cuda")
-    train_transform = train_dataset.transform
-    val_transform = T.Compose([])
+def kfold(base_model:nn.Module=None, train_dataset:TreeDataset=None, test_dataset:TreeDataset= None, train_transform:T.Compose = None, val_transform:T.Compose = None, k_fold=5, batch_size:int=10, epochs=10):
     train_summaries = pd.Series()
     val_summaries = pd.Series()
     total_size = len(train_dataset)
     fraction = 1/k_fold
     seg = int(total_size * fraction)
-
-    optimizer = optim.AdamW(model.parameters(), lr=1e-3, betas=(0.9, 0.999))
-    metric = Accuracy(task='binary', num_classes=1)
-    loss = nn.BCEWithLogitsLoss()
+    folds = []
     
-
-    metric = metric.to("cuda")
     # tr:train,val:valid; r:right,l:left;  eg: trrr: right index of right side train subset 
     # index: [trll,trlr],[vall,valr],[trrl,trrr]
     for i in range(k_fold):
+        model = copy.deepcopy(base_model)
+        model = model.to("cuda")
+        optimizer = optim.AdamW(model.parameters(), lr=1e-3, betas=(0.9, 0.999))
+        metric = Accuracy(task='binary', num_classes=1)
+        loss = nn.BCEWithLogitsLoss()
+        metric = metric.to("cuda")
         trll = 0
         trlr = i * seg
         vall = trlr
@@ -161,12 +159,8 @@ def kfold(model:nn.Module=None, train_dataset:TreeDataset=None, test_dataset:Tre
         
         train_indices = train_left_indices + train_right_indices
         val_indices = list(range(vall,valr))
-
-        train_set = Subset(train_dataset,train_indices)
-        train_dataset.change_transform(val_transform)
-        val_set = Subset(train_dataset,val_indices)
-        train_dataset.change_transform(train_transform)
-
+        train_set = TreeSubset(train_dataset,train_indices,train_transform)
+        val_set = TreeSubset(train_dataset,val_indices,val_transform)
 #         print(len(train_set),len(val_set))
 #         print()
         
@@ -180,6 +174,15 @@ def kfold(model:nn.Module=None, train_dataset:TreeDataset=None, test_dataset:Tre
                                            metric=metric, loss=loss, optimizer=optimizer, scheduler=scheduler)
         train_summaries.at[i] = train_summary
         val_summaries.at[i] = val_summary
+        log = (f'{i+1} fold, '
+                + f'loss: {train_summary["loss"]:.4f}, '
+                + f'accuracy: {train_summary["accuracy"]:.4f}')
+        checkpoint_path = f'checkpoint/{type(model).__name__}_{i+1}fold.pt'
+        save_model(checkpoint_path, model, optimizer, scheduler, epochs+1)
+        folds.append(model)
+        print(log)
+        logging.info(log)
+
     test_loader = DataLoader(test_dataset, batch_size=batch_size, num_workers=1)
     test_summary = eval(model, test_loader, metric=metric, loss=loss)
 

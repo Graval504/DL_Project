@@ -3,7 +3,7 @@ from torchvision.transforms.functional import pad
 from torch.utils.data import DataLoader, Dataset
 from torch.utils.data.dataset import Subset
 from torch import Tensor
-from typing import Literal, Union, Sequence
+from typing import Literal, Union, Sequence, List
 import glob
 from PIL.Image import open, Image, Transpose, Resampling
 import PIL.Image
@@ -11,8 +11,8 @@ import torch
 
 PIL.Image.MAX_IMAGE_PIXELS = None
 
-XLEN = 584#1168
-YLEN = 335#669
+XLEN = 584 #1168
+YLEN = 335 #669
 
 def load_data(batch_size:int)->tuple[DataLoader,DataLoader]:
     train_transform = T.Compose([
@@ -33,23 +33,19 @@ def load_data(batch_size:int)->tuple[DataLoader,DataLoader]:
     return train_loader,val_loader
 
 class TreeDataset(Dataset):
-    def __init__(self, data:list[Image], label:Tensor, transform=None):
+    def __init__(self, data:list[Image], label:Tensor):
         self.data = data
         self.label = label
-        self.transform = transform
 
     def __len__(self):
         return len(self.label)
     
     def __getitem__(self, idx) -> tuple[Image, Tensor]:
-        data = self.transform(self.data[idx])
+        data = self.data[idx]
         label = self.label[idx]
         return data, label
     
-    def change_transform(self, transform):
-        self.transform = transform
-    
-def open_data(dir:Literal["train","test"], transform) -> TreeDataset:
+def open_data(dir:Literal["train","test"]) -> TreeDataset:
     '''
     dir : "train" or "test"
     '''
@@ -58,7 +54,7 @@ def open_data(dir:Literal["train","test"], transform) -> TreeDataset:
     
     data_list = healthy_list + disease_list
     label_list = torch.cat([torch.zeros(len(healthy_list)),torch.ones(len(disease_list))])
-    return TreeDataset(data_list,label_list,transform)
+    return TreeDataset(data_list,label_list)
 
 def tree_collate_fn(samples:TreeDataset):
     collate_X = []
@@ -111,3 +107,15 @@ def image_resize(data:Image):
         zero_pad2 = diff//2+diff%2
         data = pad(data,(zero_pad1,0,zero_pad2,0))
     return data
+
+class TreeSubset(Subset):
+    def __init__(self, dataset: TreeDataset, indices: Sequence[int], transform:T.Compose) -> None:
+        super().__init__(dataset, indices)
+        self.transform = transform
+
+    def __getitem__(self, idx):
+        return self.transform(super().__getitem__(idx))
+    
+    def __getitems__(self, indices: List[int]) -> List:
+        res = [(self.transform(data),label) for data,label in super().__getitems__(indices)]
+        return res

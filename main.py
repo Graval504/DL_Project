@@ -16,16 +16,16 @@ def main():
     train_transform = T.Compose([
             T.RandomHorizontalFlip(),
             T.RandomResizedCrop((XLEN,YLEN),scale = (0.875,1)),
-            T.RandAugment(num_ops=2, magnitude=9),
+            #T.RandAugment(num_ops=2, magnitude=9),
             T.ToTensor()
         ])
     val_transform = T.Compose([
             T.ToTensor()
     ])
 
-    train_data = open_data("train",train_transform)
-    test_data = open_data("test", val_transform)
-    train_summary, val_summary, test_summmary = kfold(model, train_data, test_data, 5, 5, 100)
+    train_data = open_data("train")
+    test_data = open_data("test")
+    train_summary, val_summary, test_summmary = kfold(model, train_data, test_data, train_transform, val_transform, 5, 5, 100)
 
     return
 
