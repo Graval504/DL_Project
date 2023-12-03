@@ -36,7 +36,7 @@ def train(model, epochs, train_loader, val_loader, metric, loss, optimizer, sche
         logging.info(log)
 
         # save model
-        checkpoint_path = f'checkpoint/{model}-{optimizer}with{loss}_last.pt'
+        checkpoint_path = f'checkpoint/{type(model).__name__}-{type(optimizer).__name__}with{type(loss).__name__}_last.pt'
         save_model(checkpoint_path, model, optimizer, scheduler, epoch+1)
 
     return train_summary, val_summary
@@ -137,8 +137,8 @@ def kfold(model:nn.Module=None, train_dataset:TreeDataset=None, test_dataset:Tre
     fraction = 1/k_fold
     seg = int(total_size * fraction)
 
-    optimizer = optim.AdamW(model.parameters(), lr=1e3, betas=(0.9, 0.999))
-    metric = Accuracy(task='binary', num_classes=2)
+    optimizer = optim.AdamW(model.parameters(), lr=1e-3, betas=(0.9, 0.999))
+    metric = Accuracy(task='binary', num_classes=1)
     loss = nn.BCEWithLogitsLoss()
     
 

@@ -1,4 +1,5 @@
 import torchvision.transforms as T
+from torchvision.transforms.functional import pad
 from torch.utils.data import DataLoader, Dataset
 from torch.utils.data.dataset import Subset
 from torch import Tensor
@@ -10,22 +11,24 @@ import torch
 
 PIL.Image.MAX_IMAGE_PIXELS = None
 
-XLEN = 1168
-YLEN = 669
+XLEN = 584#1168
+YLEN = 335#669
 
 def load_data(batch_size:int)->tuple[DataLoader,DataLoader]:
     train_transform = T.Compose([
             T.RandomHorizontalFlip(),
             T.RandomResizedCrop((XLEN, YLEN),scale = (0.875,1)),
             T.RandAugment(num_ops=2, magnitude=9),
+            T.ToTensor()
         ])
     train_data = open_data("train",train_transform)
     train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True, drop_last=True,
-                              num_workers=1, collate_fn= tree_collate_fn)
+                              num_workers=1)
     val_transform = T.Compose([
+            T.ToTensor()
     ])
     val_data = open_data("test", val_transform)
-    val_loader = DataLoader(val_data, batch_size=batch_size, collate_fn= tree_collate_fn, shuffle=True)
+    val_loader = DataLoader(val_data, batch_size=batch_size, shuffle=True)
 
     return train_loader,val_loader
 
@@ -50,8 +53,8 @@ def open_data(dir:Literal["train","test"], transform) -> TreeDataset:
     '''
     dir : "train" or "test"
     '''
-    healthy_list = [open(data) for data in glob.glob(f"./data/{dir}/healthy/*.jpg")]
-    disease_list = [open(data) for data in glob.glob(f"./data/{dir}/disease/*.jpg")]
+    healthy_list = [image_resize(open(data)) for data in glob.glob(f"./data/{dir}/healthy/*.jpg")]
+    disease_list = [image_resize(open(data)) for data in glob.glob(f"./data/{dir}/disease/*.jpg")]
     
     data_list = healthy_list + disease_list
     label_list = torch.cat([torch.zeros(len(healthy_list)),torch.ones(len(disease_list))])
@@ -85,3 +88,26 @@ def tree_collate_fn(samples:TreeDataset):
         collate_X.append(torch.cat([zero_pad1, data, zero_pad2], dim=catdim))
     collate_y.append(label)
     return torch.stack(collate_X), torch.stack(collate_y)
+
+def image_resize(data:Image):
+    x, y = data.size
+    if x < y:
+        data = data.transpose(Transpose.ROTATE_90)
+        buf = x
+        x = y
+        y = buf
+    if XLEN*y < YLEN*x:
+        y = XLEN*y//x
+        diff = YLEN-y
+        data = data.resize((XLEN,y),Resampling.LANCZOS)
+        zero_pad1 = diff//2
+        zero_pad2 = diff//2+diff%2
+        data = pad(data,(0,zero_pad1,0,zero_pad2))
+    else:
+        x = YLEN*x//y
+        diff = XLEN-x
+        data = data.resize((x,YLEN),Resampling.LANCZOS)
+        zero_pad1 = diff//2
+        zero_pad2 = diff//2+diff%2
+        data = pad(data,(zero_pad1,0,zero_pad2,0))
+    return data

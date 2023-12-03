@@ -6,9 +6,9 @@ import logging
 
 def main():
     print(XLEN, YLEN)
-    model = ResNet(3,[3, 3, 9, 3],[64, 128, 256, 512],2)
+    model = ResNet(3,[3, 3, 9, 3],[64, 128, 256, 512],1)    
     logging.basicConfig(
-        filename=f'{model._get_name()}.log',
+        filename=f'{type(model).__name__}.log',
         format='%(asctime)s - %(message)s',
         level=logging.INFO, 
     )
@@ -17,8 +17,10 @@ def main():
             T.RandomHorizontalFlip(),
             T.RandomResizedCrop((XLEN,YLEN),scale = (0.875,1)),
             T.RandAugment(num_ops=2, magnitude=9),
+            T.ToTensor()
         ])
     val_transform = T.Compose([
+            T.ToTensor()
     ])
 
     train_data = open_data("train",train_transform)

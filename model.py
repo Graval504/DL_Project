@@ -62,4 +62,4 @@ class ResNet(nn.Module):
             x = self.layers[i](x)
         x = self.norm(x.mean([-1, -2]))
         out = self.head(x)
-        return out
+        return out[:,0]
