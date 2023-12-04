@@ -7,7 +7,7 @@ from torch.utils.data import DataLoader
 from torchmetrics.aggregation import MeanMetric
 from torchmetrics import Accuracy
 import torchvision.transforms as T
-from data_processing import TreeDataset, TreeSubset
+from data_processing import TreeDataset, TreeSubset, TreeDatasetWithTransform
 import pandas as pd
 import copy
 
@@ -175,17 +175,25 @@ def kfold(base_model:nn.Module=None, train_dataset:TreeDataset=None, test_datase
         train_summaries.at[i] = train_summary
         val_summaries.at[i] = val_summary
         log = (f'{i+1} fold, '
-                + f'loss: {train_summary["loss"]:.4f}, '
-                + f'accuracy: {train_summary["accuracy"]:.4f}')
+                + f'loss: {val_summary["loss"]:.4f}, '
+                + f'accuracy: {val_summary["accuracy"]:.4f}')
         checkpoint_path = f'checkpoint/{type(model).__name__}_{i+1}fold.pt'
         save_model(checkpoint_path, model, optimizer, scheduler, epochs+1)
         folds.append(model)
         print(log)
         logging.info(log)
-
-    test_loader = DataLoader(test_dataset, batch_size=batch_size, num_workers=1)
-    test_summary = eval(model, test_loader, metric=metric, loss=loss)
-
+    test_summary = evaluate_test(model, test_dataset, metric, loss, batch_size)
     return train_summaries, val_summaries, test_summary
 
+def evaluate_test(model, test_dataset:TreeDataset, metric, loss, batch_size=5):
+    test_transform = T.Compose(T.ToTensor())
+    test_dataset = TreeDatasetWithTransform(test_dataset, test_transform)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, num_workers=1)
+    test_summary = eval(model, test_loader, metric=metric, loss=loss)
+    log = (f'test set evaluate, '
+                + f'loss: {test_summary["loss"]:.4f}, '
+                + f'accuracy: {test_summary["accuracy"]:.4f}')
+    print(log)
+    logging.info(log)
+    return test_summary
         

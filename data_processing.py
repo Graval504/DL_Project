@@ -22,13 +22,13 @@ def load_data(batch_size:int)->tuple[DataLoader,DataLoader]:
             T.ToTensor()
         ])
     train_data = open_data("train",train_transform)
-    train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True, drop_last=True,
+    train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=False, drop_last=True,
                               num_workers=1)
     val_transform = T.Compose([
             T.ToTensor()
     ])
     val_data = open_data("test", val_transform)
-    val_loader = DataLoader(val_data, batch_size=batch_size, shuffle=True)
+    val_loader = DataLoader(val_data, batch_size=batch_size, shuffle=False)
 
     return train_loader,val_loader
 
@@ -114,8 +114,18 @@ class TreeSubset(Subset):
         self.transform = transform
 
     def __getitem__(self, idx):
-        return self.transform(super().__getitem__(idx))
+        data, label = super().__getitem__(idx)
+        return (self.transform(data),label)
     
     def __getitems__(self, indices: List[int]) -> List:
         res = [(self.transform(data),label) for data,label in super().__getitems__(indices)]
         return res
+
+class TreeDatasetWithTransform(Dataset):
+    def __init__(self, dataset: TreeDataset, transform: T.Compose):
+        self.dataset = dataset
+        self.transform = transform
+    
+    def __getitem__(self, idx) -> tuple[Image, Tensor]:
+        data, label = self.dataset.__getitem__(idx)
+        return (self.transform(data), label)

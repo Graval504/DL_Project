@@ -1,6 +1,9 @@
 import torch.nn as nn
 from timm.models.layers import DropPath
 from timm.layers.blur_pool import BlurPool2d
+import torch
+from torch.optim import Optimizer
+from torch.optim.lr_scheduler import LRScheduler
 
 class Downsample(nn.Module):
     def __init__(self, in_dim, out_dim, kernel_size=3, stride=1, padding=1):
@@ -63,3 +66,10 @@ class ResNet(nn.Module):
         x = self.norm(x.mean([-1, -2]))
         out = self.head(x)
         return out[:,0]
+    
+def load_model(model_file:str, model:nn.Module, optimizer:Optimizer, scheduler:LRScheduler):
+    checkpoint = torch.load(model_file)
+    model.load_state_dict(checkpoint["model"])
+    optimizer.load_state_dict(checkpoint["optimizer"])
+    scheduler.load_state_dict(checkpoint["scheduler"])
+    return model, optimizer, scheduler
