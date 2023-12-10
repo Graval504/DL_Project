@@ -8,6 +8,7 @@ from torchmetrics.aggregation import MeanMetric
 from torchmetrics import Accuracy
 import torchvision.transforms as T
 from data_processing import TreeDataset, TreeSubset, TreeDatasetWithTransform
+from model import VotingClassifier
 import pandas as pd
 import copy
 
@@ -140,7 +141,7 @@ def kfold(base_model:nn.Module=None, train_dataset:TreeDataset=None, test_datase
     for i in range(k_fold):
         model = copy.deepcopy(base_model)
         model = model.to("cuda")
-        optimizer = optim.AdamW(model.parameters(), lr=1e-3, betas=(0.9, 0.999))
+        optimizer = optim.AdamW(model.parameters(), lr=5e-4, betas=(0.9, 0.999))
         metric = Accuracy(task='binary', num_classes=1)
         loss = nn.BCEWithLogitsLoss()
         metric = metric.to("cuda")
@@ -182,11 +183,12 @@ def kfold(base_model:nn.Module=None, train_dataset:TreeDataset=None, test_datase
         folds.append(model)
         print(log)
         logging.info(log)
-    test_summary = evaluate_test(model, test_dataset, metric, loss, batch_size)
+    ensemble = VotingClassifier(folds)
+    test_summary = evaluate_test(ensemble, test_dataset, metric, loss, batch_size)
     return train_summaries, val_summaries, test_summary
 
 def evaluate_test(model, test_dataset:TreeDataset, metric, loss, batch_size=5):
-    test_transform = T.Compose(T.ToTensor())
+    test_transform = T.Compose([T.ToTensor()])
     test_dataset = TreeDatasetWithTransform(test_dataset, test_transform)
     test_loader = DataLoader(test_dataset, batch_size=batch_size, num_workers=1)
     test_summary = eval(model, test_loader, metric=metric, loss=loss)

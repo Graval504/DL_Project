@@ -4,6 +4,8 @@ from timm.layers.blur_pool import BlurPool2d
 import torch
 from torch.optim import Optimizer
 from torch.optim.lr_scheduler import LRScheduler
+from typing import List
+
 
 class Downsample(nn.Module):
     def __init__(self, in_dim, out_dim, kernel_size=3, stride=1, padding=1):
@@ -11,6 +13,7 @@ class Downsample(nn.Module):
 
         self.layers = nn.Sequential(
             nn.Conv2d(in_dim, out_dim, kernel_size, stride, padding),
+            nn.BatchNorm2d(out_dim),
             BlurPool2d(out_dim),
             nn.BatchNorm2d(out_dim),
             
@@ -73,3 +76,14 @@ def load_model(model_file:str, model:nn.Module, optimizer:Optimizer, scheduler:L
     optimizer.load_state_dict(checkpoint["optimizer"])
     scheduler.load_state_dict(checkpoint["scheduler"])
     return model, optimizer, scheduler
+
+class VotingClassifier(nn.Module):
+    def __init__(self, models:list[nn.Module]) -> None:
+        super().__init__()
+        self.models = models
+
+    def forward(self, x):
+        result = []
+        for model in self.models:
+            result.append(model.forward(x))
+        return torch.stack(result,dim=0).mean(dim=0)

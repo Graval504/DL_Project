@@ -28,4 +28,8 @@ data transform(data augmentation) 적용 ✔
 confusion matrix 구현 \
 data augmentation \
 -> 시간이많다면 randaugment를 grid search해보기(lr_rate를 늘리고, 에포크 수 줄여서) \
--> MixUp(1순위) 및 CutMix(후순위)구현 \
+-> MixUp 구현 \
+
+Transfer Learning\
+Imagenet-21k model finetuning\
+Imagenet-21k model -> plantvillage fintuning -> our dataset fintuning

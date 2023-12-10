@@ -129,3 +129,6 @@ class TreeDatasetWithTransform(Dataset):
     def __getitem__(self, idx) -> tuple[Image, Tensor]:
         data, label = self.dataset.__getitem__(idx)
         return (self.transform(data), label)
+    
+    def __len__(self):
+        return len(self.dataset.label)
