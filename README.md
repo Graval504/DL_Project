@@ -35,28 +35,23 @@ https://www.kaggle.com/datasets/emmarex/plantdisease
 PlantVillage 데이터셋은 다운받으신 후 압축을 해제하여\
 PlantVillage 폴더를 data 폴더에 위치시켜주시면 됩니다.
 
-## TODO
-### data_processing.py
-collate_fn 만들기 ✔\
-data size가 균일하지 않으므로, 이를 위한 collate_fn 필요 ✔\
-padding or crop or stretch -> 아마 padding 아니면 stretch 사용 ✔\
--> Lanzcos 보간법 이용하여 resize 후 패딩하는 방식 사용
+## How To Use
+main.py는 총 다섯가지 함수로 구성되어있습니다.\
+main_resnet 함수는 느티나무 질병데이터를 기반으로 kfold 모델을 학습하고 학습된 모델을 checkpoint/ResNet_Nfold.pt의 형태로 저장합니다.
 
-K fold crossvalidation 구현 ✔\
--> https://stackoverflow.com/questions/60883696/k-fold-cross-validation-using-dataloaders-in-pytorch 참고하기\
+main_loadmodel 함수는 checkpoint/ResNet_Nfold.pt 모델들을 불러와 이를 기반으로 test set의 성능을 평가하고 confusion matrix 이미지를 저장합니다.
 
-data transform(data augmentation) 적용 ✔
+main_finetune 함수는 imagenet-21k pretrained VisionTransformer 모델을 기반으로 느티나무 질병데이터를 이용해 모델을 finetuning하며,\
+학습된 kfold 모델을 checkpoint/VisionTransformer_Nfold.pt의 형태로 저장합니다.
 
-### model.py
-모델 구현 -> resnet 사용 ✔
+main_finetuneWithPlantVillage 함수는 imagenet-21k pretrained VisionTransformer 모델을 PlantVillage 데이터셋에 대해 finetuning하여 cheeckpoint/VisionTransformer_PlantVillage.pt로 저장하고,\
+해당 모델을 기반으로 느티나무 질병데이터에 대해 kfold finetuning을 진행하여 학습된 모델을 checkpoint/VisionTransformer_Nfold.pt의 형태로 저장합니다.
 
-### FINAL
-모델 학습 및 성능 평가 ✔\
-confusion matrix 구현 ✔\
-data augmentation \
--> 시간이많다면 randaugment를 grid search해보기(lr_rate를 늘리고, 에포크 수 줄여서) \
--> MixUp 구현 \
+main_load_finetunedmodel은 함수는 input bool값에 따라\
+False인경우 checkpoint/finetune/VisionTransformer_Nfold.pt 모델들을 불러와 이를 기반으로 test set의 성능을 평가하고 confusion matrix 이미지를 저장합니다.\
+True인 경우 checkpoint/finetunePlantVillage/VisionTransformer_Nfold.pt 모델들을 불러와 이를 기반으로 test set의 성능을 평가하고 confusion matrix 이미지를 저장합니다.
 
-Transfer Learning ✔\
-Imagenet-21k model finetuning ✔\
-Imagenet-21k model -> plantvillage fintuning -> our dataset fintuning ✔
+main.py 파일의 맨끝에 위치한 `if __name__=="__main__":` 문에서 실행하고자 하는 함수만을 주석해제한뒤 main.py를 실행하거나,\
+다른 파일에서 `from main import main_load_finetunedmodel`과 같이 함수를 import하여 함수를 실행할 수 있습니다.
+
+각각의 함수에서 사용하고자 하는 데이터셋은 data/ 디렉토리 내에 위치해야합니다.
