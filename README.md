@@ -54,7 +54,7 @@ PlantVillage 데이터셋에 대해 finetuning하여 cheeckpoint/VisionTransform
 
 main_load_finetunedmodel은 함수는 input bool값에 따라\
 False인경우 checkpoint/finetune/VisionTransformer_Nfold.pt 모델들을 불러와 이를 기반으로\
-test set의 성능을 평가하고 confusion matrix 이미지를 저장합니다.
+test set의 성능을 평가하고 confusion matrix 이미지를 저장합니다.\
 True인 경우 checkpoint/finetunePlantVillage/VisionTransformer_Nfold.pt 모델들을 불러와 이를 기반으로\
 test set의 성능을 평가하고 confusion matrix 이미지를 저장합니다.
 
