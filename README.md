@@ -8,6 +8,16 @@
 
 ![](./data.jpg)
 
+## 추가 데이터셋 사용 - PlantVillage
+transfer learning 과정에 PlantVillage 데이터셋을 추가로 사용하여 \
+모델을 2차례에 걸쳐 학습을 진행하였습니다.\
+PlantVillage 데이터셋 또한 리포지토리에 포함되지 않으며\
+아래 캐글 주소에서 별도로 다운받을 수 있습니다.\
+https://www.kaggle.com/datasets/emmarex/plantdisease\
+\
+PlantVillage 데이터셋은 다운받으신 후 압축을 해제하여 PlantVillage 폴더를\
+data 폴더에 위치시켜주시면 됩니다.\
+
 ## TODO
 ### data_processing.py
 collate_fn 만들기 ✔\
@@ -31,5 +41,5 @@ data augmentation \
 -> MixUp 구현 \
 
 Transfer Learning\
-Imagenet-21k model finetuning\
+Imagenet-21k model finetuning ✔\
 Imagenet-21k model -> plantvillage fintuning -> our dataset fintuning

@@ -5,19 +5,17 @@ from torch.utils.data.dataset import Subset
 from torch import Tensor
 from typing import Literal, Union, Sequence, List
 import glob
+from random import shuffle
 from PIL.Image import open, Image, Transpose, Resampling
 import PIL.Image
 import torch
 
 PIL.Image.MAX_IMAGE_PIXELS = None
 
-XLEN = 584 #1168
-YLEN = 335 #669
-
-def load_data(batch_size:int)->tuple[DataLoader,DataLoader]:
+def load_data(batch_size:int, xlen=584, ylen=335)->tuple[DataLoader,DataLoader]:
     train_transform = T.Compose([
             T.RandomHorizontalFlip(),
-            T.RandomResizedCrop((XLEN, YLEN),scale = (0.875,1)),
+            T.RandomResizedCrop((xlen, ylen),scale = (0.875,1)),
             T.RandAugment(num_ops=2, magnitude=9),
             T.ToTensor()
         ])
@@ -45,64 +43,82 @@ class TreeDataset(Dataset):
         label = self.label[idx]
         return data, label
     
-def open_data(dir:Literal["train","test"]) -> TreeDataset:
+def open_data(dir:Literal["train","test"], xlen=584, ylen=335) -> TreeDataset:
     '''
     dir : "train" or "test"
     '''
-    healthy_list = [image_resize(open(data)) for data in glob.glob(f"./data/{dir}/healthy/*.jpg")]
-    disease_list = [image_resize(open(data)) for data in glob.glob(f"./data/{dir}/disease/*.jpg")]
+    healthy_list = [image_resize(open(data),xlen,ylen) for data in glob.glob(f"./data/{dir}/healthy/*.jpg")]
+    disease_list = [image_resize(open(data),xlen,ylen) for data in glob.glob(f"./data/{dir}/disease/*.jpg")]
     
     data_list = healthy_list + disease_list
     label_list = torch.cat([torch.zeros(len(healthy_list)),torch.ones(len(disease_list))])
+    zip_list = list(zip(data_list,label_list))
+    shuffle(zip_list)
+    data_list, label_list = zip(*zip_list)
+    label_list = torch.stack(label_list)
     return TreeDataset(data_list,label_list)
 
-def tree_collate_fn(samples:TreeDataset):
-    collate_X = []
-    collate_y = []
-    for data, label in samples:
-        x, y = data.size
-        if x < y:
-            data = data.transpose(Transpose.ROTATE_90)
-            buf = x
-            x = y
-            y = buf
-        if XLEN*y < YLEN*x:
-            y = XLEN*y//x
-            diff = YLEN-y
-            data = data.resize((XLEN,y),Resampling.LANCZOS)
-            zero_pad1 = torch.zeros(size=(3, diff//2, XLEN))
-            zero_pad2 = torch.zeros(size=(3, diff//2+diff%2, XLEN))
-            catdim = 1
-        else:
-            x = YLEN*x//y
-            diff = XLEN-x
-            data = data.resize((x,YLEN),Resampling.LANCZOS)
-            zero_pad1 = torch.zeros(size=(3, YLEN, diff//2))
-            zero_pad2 = torch.zeros(size=(3, YLEN, diff//2+diff%2))
-            catdim = 2
-        data = T.ToTensor()(data)
-        collate_X.append(torch.cat([zero_pad1, data, zero_pad2], dim=catdim))
-    collate_y.append(label)
-    return torch.stack(collate_X), torch.stack(collate_y)
+def open_PlantVillage(xlen=224, ylen=224) -> TreeDataset:
+    root = "./data/PlantVillage"
+    data_list:list[Image] = []
+    label_list = []
+    for index, dir in enumerate(glob.glob(f"{root}/*")):
+            for data in glob.glob(f"{dir}/*.jpg"):
+                data_list.append(image_resize(open(data), xlen, ylen))
+                label_list.append(index)
+    zip_list = list(zip(data_list,label_list))
+    shuffle(zip_list)
+    data_list, label_list = zip(*zip_list)
+    label_list = torch.tensor(label_list)
+    return TreeDataset(data_list,label_list)
 
-def image_resize(data:Image):
+# def tree_collate_fn(samples:TreeDataset):
+#     collate_X = []
+#     collate_y = []
+#     for data, label in samples:
+#         x, y = data.size
+#         if x < y:
+#             data = data.transpose(Transpose.ROTATE_90)
+#             buf = x
+#             x = y
+#             y = buf
+#         if XLEN*y < YLEN*x:
+#             y = XLEN*y//x
+#             diff = YLEN-y
+#             data = data.resize((XLEN,y),Resampling.LANCZOS)
+#             zero_pad1 = torch.zeros(size=(3, diff//2, XLEN))
+#             zero_pad2 = torch.zeros(size=(3, diff//2+diff%2, XLEN))
+#             catdim = 1
+#         else:
+#             x = YLEN*x//y
+#             diff = XLEN-x
+#             data = data.resize((x,YLEN),Resampling.LANCZOS)
+#             zero_pad1 = torch.zeros(size=(3, YLEN, diff//2))
+#             zero_pad2 = torch.zeros(size=(3, YLEN, diff//2+diff%2))
+#             catdim = 2
+#         data = T.ToTensor()(data)
+#         collate_X.append(torch.cat([zero_pad1, data, zero_pad2], dim=catdim))
+#     collate_y.append(label)
+#     return torch.stack(collate_X), torch.stack(collate_y)
+
+def image_resize(data:Image,xlen=584,ylen=335):
     x, y = data.size
     if x < y:
         data = data.transpose(Transpose.ROTATE_90)
         buf = x
         x = y
         y = buf
-    if XLEN*y < YLEN*x:
-        y = XLEN*y//x
-        diff = YLEN-y
-        data = data.resize((XLEN,y),Resampling.LANCZOS)
+    if xlen*y < ylen*x:
+        y = xlen*y//x
+        diff = ylen-y
+        data = data.resize((xlen,y),Resampling.LANCZOS)
         zero_pad1 = diff//2
         zero_pad2 = diff//2+diff%2
         data = pad(data,(0,zero_pad1,0,zero_pad2))
     else:
-        x = YLEN*x//y
-        diff = XLEN-x
-        data = data.resize((x,YLEN),Resampling.LANCZOS)
+        x = ylen*x//y
+        diff = xlen-x
+        data = data.resize((x,ylen),Resampling.LANCZOS)
         zero_pad1 = diff//2
         zero_pad2 = diff//2+diff%2
         data = pad(data,(zero_pad1,0,zero_pad2,0))

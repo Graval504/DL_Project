@@ -1,5 +1,6 @@
 import torch.nn as nn
 from timm.models.layers import DropPath
+from timm.models.vision_transformer import VisionTransformer
 from timm.layers.blur_pool import BlurPool2d
 import torch
 from torch.optim import Optimizer
@@ -68,7 +69,7 @@ class ResNet(nn.Module):
             x = self.layers[i](x)
         x = self.norm(x.mean([-1, -2]))
         out = self.head(x)
-        return out[:,0]
+        return out
     
 def load_model(model_file:str, model:nn.Module, optimizer:Optimizer, scheduler:LRScheduler):
     checkpoint = torch.load(model_file)

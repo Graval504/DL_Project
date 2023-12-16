@@ -61,6 +61,8 @@ def train_one_epoch(model, loader, metric_fn, loss_fn, device, optimizer, schedu
     accuracy_epoch = MeanMetric()    
     # train loop
     for inputs, targets in tqdm.tqdm(loader):
+        if len(targets.shape) == 1:
+            targets = targets.unsqueeze(1)
         # move data to device
         inputs = inputs.to(device)
         targets = targets.to(device)
@@ -97,6 +99,8 @@ def eval_one_epoch(model, loader, metric_fn, loss_fn, device):
     accuracy_epoch = MeanMetric()    
     # train loop
     for inputs, targets in tqdm.tqdm(loader):
+        if len(targets.shape) == 1:
+            targets = targets.unsqueeze(1)
         # move data to device
         inputs = inputs.to(device)
         targets = targets.to(device)
@@ -128,7 +132,7 @@ def save_model(path, model, optimizer, scheduler, epoch):
     }
     torch.save(state_dict, path)
 
-def kfold(base_model:nn.Module=None, train_dataset:TreeDataset=None, test_dataset:TreeDataset= None, train_transform:T.Compose = None, val_transform:T.Compose = None, k_fold=5, batch_size:int=10, epochs=10):
+def kfold(base_model:nn.Module=None, train_dataset:TreeDataset=None, test_dataset:TreeDataset= None, train_transform:T.Compose = None, val_transform:T.Compose = None, k_fold=5, batch_size:int=10, epochs=10, learning_rate=1e-3):
     train_summaries = pd.Series()
     val_summaries = pd.Series()
     total_size = len(train_dataset)
@@ -141,7 +145,7 @@ def kfold(base_model:nn.Module=None, train_dataset:TreeDataset=None, test_datase
     for i in range(k_fold):
         model = copy.deepcopy(base_model)
         model = model.to("cuda")
-        optimizer = optim.AdamW(model.parameters(), lr=5e-4, betas=(0.9, 0.999))
+        optimizer = optim.AdamW(model.parameters(), lr=learning_rate, betas=(0.9, 0.999))
         metric = Accuracy(task='binary', num_classes=1)
         loss = nn.BCEWithLogitsLoss()
         metric = metric.to("cuda")
