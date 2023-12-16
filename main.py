@@ -3,6 +3,8 @@ from data_processing import open_data
 from train import kfold, evaluate_test
 from model import ResNet, load_model, VotingClassifier
 from finetune import finetune, finetune_plantVillage
+import seaborn as sn
+import matplotlib.pyplot as plt
 from torchmetrics import Accuracy
 import torch.nn as nn
 import torch.optim as optim
@@ -53,8 +55,13 @@ def main_loadmodel():
     test_dataset = open_data("test")
     metric = Accuracy(task='binary', num_classes=1).to("cuda")
     loss = nn.BCEWithLogitsLoss()
-    test_summary = evaluate_test(ensemble, test_dataset, metric, loss, 5)
-    return
+    test_summary, conf = evaluate_test(ensemble, test_dataset, metric, loss, 5)
+    sn.set(font_scale=1.4)
+    sn.heatmap(conf,annot=True,annot_kws={"size":16}, cmap="OrRd", cbar=False, xticklabels=["healthy","disease"], yticklabels=["healthy","disease"])
+    plt.xlabel("predict")
+    plt.ylabel("target")
+    plt.savefig("confusion_matrix.png")
+    return test_summary, conf
 
 def main_finetune():
     train_transform = T.Compose([
@@ -98,5 +105,5 @@ def main_finetuneWithPlantVillage():
 if __name__=="__main__":
     #main_resnet()
     #main_loadmodel()
-    main_finetune()
-    #main_finetuneWithPlantVillage()
+    #main_finetune()
+    main_finetuneWithPlantVillage()

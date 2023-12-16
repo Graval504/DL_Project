@@ -1,2 +1,2 @@
-2023-12-05 10:35:06,122 - test_loss: 0.9689, test_accuracy: 0.6357
-2023-12-05 10:35:06,123 - test set evaluate, loss: 0.9689, accuracy: 0.6357
+2023-12-16 22:37:13,834 - test set evaluate, loss: 0.4254, accuracy: 0.8286
+2023-12-16 22:49:52,311 - test set evaluate, loss: 0.3619, accuracy: 0.8571

@@ -8,6 +8,7 @@ from torchmetrics.aggregation import MeanMetric
 from torchmetrics import Accuracy
 import torchvision.transforms as T
 from data_processing import TreeDataset, TreeSubset, TreeDatasetWithTransform
+import numpy as np
 from model import VotingClassifier
 import pandas as pd
 import copy
@@ -61,7 +62,7 @@ def train_one_epoch(model, loader, metric_fn, loss_fn, device, optimizer, schedu
     accuracy_epoch = MeanMetric()    
     # train loop
     for inputs, targets in tqdm.tqdm(loader):
-        if len(targets.shape) == 1:
+        if type(loss_fn) == nn.BCEWithLogitsLoss and len(targets.shape) == 1:
             targets = targets.unsqueeze(1)
         # move data to device
         inputs = inputs.to(device)
@@ -99,7 +100,7 @@ def eval_one_epoch(model, loader, metric_fn, loss_fn, device):
     accuracy_epoch = MeanMetric()    
     # train loop
     for inputs, targets in tqdm.tqdm(loader):
-        if len(targets.shape) == 1:
+        if type(loss_fn) == nn.BCEWithLogitsLoss and len(targets.shape) == 1:
             targets = targets.unsqueeze(1)
         # move data to device
         inputs = inputs.to(device)
@@ -195,11 +196,63 @@ def evaluate_test(model, test_dataset:TreeDataset, metric, loss, batch_size=5):
     test_transform = T.Compose([T.ToTensor()])
     test_dataset = TreeDatasetWithTransform(test_dataset, test_transform)
     test_loader = DataLoader(test_dataset, batch_size=batch_size, num_workers=1)
-    test_summary = eval(model, test_loader, metric=metric, loss=loss)
+    test_summary, conf = eval_with_confusion_matrix(model, test_loader, metric_fn=metric, loss_fn=loss, device="cuda")
     log = (f'test set evaluate, '
                 + f'loss: {test_summary["loss"]:.4f}, '
                 + f'accuracy: {test_summary["accuracy"]:.4f}')
     print(log)
     logging.info(log)
-    return test_summary
+    return test_summary, conf
         
+def eval_with_confusion_matrix(model, loader, metric_fn, loss_fn, device):
+    # set model to evaluatinon mode    
+    model.eval()
+    
+    # average meters to trace loss and accuracy
+    loss_epoch = MeanMetric()
+    accuracy_epoch = MeanMetric()    
+    output_list = []
+    target_list = []
+    # loop
+    for inputs, targets in tqdm.tqdm(loader):
+        if type(loss_fn) == nn.BCEWithLogitsLoss and len(targets.shape) == 1:
+            targets = targets.unsqueeze(1)
+        # move data to device
+        inputs = inputs.to(device)
+        targets = targets.to(device)
+        
+        # forward
+        with torch.no_grad():
+            outputs = model(inputs)
+        output_list.append(outputs)
+        target_list.append(targets)
+        loss = loss_fn(outputs, targets)
+        accuracy = metric_fn(outputs, targets)
+        
+        # update statistics
+        loss_epoch.update(loss.to('cpu'))
+        accuracy_epoch.update(accuracy.to('cpu'))
+    output_list = torch.flatten(torch.cat(output_list, dim=0))
+    target_list = torch.flatten(torch.cat(target_list, dim=0))
+    output_list = output_list.to("cpu")
+    target_list = target_list.to("cpu")
+    output_list = (torch.sigmoid(output_list)>0.5).int()
+    target_list = target_list.int()
+    tp, tn, fp, fn = 0, 0, 0, 0
+    for o, t in zip(output_list,target_list):
+        if o==t:
+            if o == 0:
+                tn+=1
+                continue
+            tp+=1
+            continue
+        if o == 0:
+            fn+=1
+            continue
+        fp +=1
+    conf = np.array([[tn,fp],[fn,tp]])
+    summary = {
+        'loss': loss_epoch.compute(),
+        'accuracy': accuracy_epoch.compute(),
+    }
+    return summary, conf

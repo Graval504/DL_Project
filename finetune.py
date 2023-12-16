@@ -37,6 +37,8 @@ def finetune_plantVillage(model:VisionTransformer,train_transform:T.Compose = No
     val_loader = DataLoader(val_set, batch_size=batch_size,
                                         shuffle=True, num_workers=1)
     model.head = nn.Linear(model.head.in_features, 15)
+    model = model.to("cuda")
+    metric = metric.to("cuda")
     train_summary, val_summary = train(model=model, epochs=epochs, train_loader=train_loader, val_loader=val_loader,
                                         metric=metric, loss=loss, optimizer=optimizer, scheduler=scheduler)
     checkpoint_path = f'checkpoint/{type(model).__name__}_PlantVillage.pt'
