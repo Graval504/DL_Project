@@ -2,4 +2,4 @@ data/*
 __pycache__/
 *.py[cod]
 weights
-checkpoint/*
+checkpoint/*last.pt
