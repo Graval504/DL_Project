@@ -51,12 +51,12 @@ data transform(data augmentation) 적용 ✔
 모델 구현 -> resnet 사용 ✔
 
 ### FINAL
-모델 학습 및 성능 평가 \
-confusion matrix 구현 \
+모델 학습 및 성능 평가 ✔\
+confusion matrix 구현 ✔\
 data augmentation \
 -> 시간이많다면 randaugment를 grid search해보기(lr_rate를 늘리고, 에포크 수 줄여서) \
 -> MixUp 구현 \
 
-Transfer Learning\
+Transfer Learning ✔\
 Imagenet-21k model finetuning ✔\
-Imagenet-21k model -> plantvillage fintuning -> our dataset fintuning
+Imagenet-21k model -> plantvillage fintuning -> our dataset fintuning ✔
