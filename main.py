@@ -102,7 +102,7 @@ def main_finetuneWithPlantVillage():
     train_summary, val_summary, test_summmary = finetune(model, train_transform, val_transform, 10, 10, 2e-5)
     return
 
-def main_load_fintunedmodel(PlantVillage=False):
+def main_load_finetunedmodel(PlantVillage=False):
     logging.basicConfig(
         filename='ensemble.log',
         format='%(asctime)s - %(message)s',
@@ -133,7 +133,7 @@ def main_load_fintunedmodel(PlantVillage=False):
 
 if __name__=="__main__":
     #main_resnet()
-    main_loadmodel()
+    #main_loadmodel()
     #main_finetune()
     #main_finetuneWithPlantVillage()
-    #main_load_fintunedmodel()
+    main_load_finetunedmodel(True)
