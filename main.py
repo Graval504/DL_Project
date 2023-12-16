@@ -56,7 +56,7 @@ def main_loadmodel():
     metric = Accuracy(task='binary', num_classes=1).to("cuda")
     loss = nn.BCEWithLogitsLoss()
     test_summary, conf = evaluate_test(ensemble, test_dataset, metric, loss, 5)
-    sn.set(font_scale=1.4)
+    plt.figure(figsize=(4,4),dpi=240)
     sn.heatmap(conf,annot=True,annot_kws={"size":16}, cmap="OrRd", cbar=False, xticklabels=["healthy","disease"], yticklabels=["healthy","disease"])
     plt.xlabel("predict")
     plt.ylabel("target")
@@ -102,8 +102,38 @@ def main_finetuneWithPlantVillage():
     train_summary, val_summary, test_summmary = finetune(model, train_transform, val_transform, 10, 10, 2e-5)
     return
 
+def main_load_fintunedmodel(PlantVillage=False):
+    logging.basicConfig(
+        filename='ensemble.log',
+        format='%(asctime)s - %(message)s',
+        level=logging.INFO, 
+    )
+    model = timm.create_model("vit_base_patch16_224.augreg_in21k")
+    model.head = nn.Linear(model.head.in_features,1)
+    optimizer = optim.AdamW(model.parameters(), lr=2e-3, betas=(0.9, 0.999))
+    scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=100 * 87)
+    models = []
+    dir = "checkpoint/finetunePlantVillage/" if PlantVillage == True else "checkpoint/finetune/"
+    for i in range(5):
+        model, optimizer, scheduler = load_model(f"{dir}VisionTransformer_{i+1}fold.pt",model, optimizer, scheduler)
+        models.append(model.to("cuda"))
+    ensemble = VotingClassifier(models)
+    test_dataset = open_data("test",224,224)
+    metric = Accuracy(task='binary', num_classes=1).to("cuda")
+    loss = nn.BCEWithLogitsLoss()
+    test_summary, conf = evaluate_test(ensemble, test_dataset, metric, loss, 5)
+    plt.figure(figsize=(4,4),dpi=240)
+    sn.heatmap(conf,annot=True,annot_kws={"size":16}, cmap="OrRd", cbar=False, xticklabels=["healthy","disease"], yticklabels=["healthy","disease"])
+    plt.xlabel("predict")
+    plt.ylabel("target")
+    plantv = "WithPlantVillage"*PlantVillage
+    plt.savefig(f"confusion_matrix_{type(model).__name__}{plantv}.png")
+    return test_summary, conf
+
+
 if __name__=="__main__":
     #main_resnet()
-    #main_loadmodel()
+    main_loadmodel()
     #main_finetune()
-    main_finetuneWithPlantVillage()
+    #main_finetuneWithPlantVillage()
+    #main_load_fintunedmodel()

@@ -1,2 +1,9 @@
 2023-12-16 22:37:13,834 - test set evaluate, loss: 0.4254, accuracy: 0.8286
 2023-12-16 22:49:52,311 - test set evaluate, loss: 0.3619, accuracy: 0.8571
+2023-12-16 23:29:36,584 - test set evaluate, loss: 0.1128, accuracy: 0.9571
+2023-12-16 23:31:50,239 - test set evaluate, loss: 0.1120, accuracy: 0.9571
+2023-12-16 23:32:58,024 - test set evaluate, loss: 0.4097, accuracy: 0.8500
+2023-12-16 23:33:45,986 - test set evaluate, loss: 0.1120, accuracy: 0.9571
+2023-12-16 23:34:16,624 - test set evaluate, loss: 0.4245, accuracy: 0.8357
+2023-12-16 23:35:37,052 - test set evaluate, loss: 0.5792, accuracy: 0.8179
+2023-12-16 23:36:06,577 - test set evaluate, loss: 0.3814, accuracy: 0.8500
