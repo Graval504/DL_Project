@@ -9,6 +9,7 @@
 ![](./data.jpg)
 
 발표 자료 (제작중) : https://www.miricanvas.com/v/12pa3cl
+-> confusion_matrix 색깔에 맞춰서 템플릿 색도 바꿀까 고민중!
 ## Introduction
 ### 왜 나무 질병에 대해 연구해야하는가?
 
