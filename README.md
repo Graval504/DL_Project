@@ -40,17 +40,21 @@ PlantVillage 폴더를 data 폴더에 위치시켜주시면 됩니다.
 main.py는 총 다섯가지 함수로 구성되어있습니다.\
 main_resnet 함수는 느티나무 질병데이터를 기반으로 kfold 모델을 학습하고 학습된 모델을 checkpoint/ResNet_Nfold.pt의 형태로 저장합니다.
 
-main_loadmodel 함수는 checkpoint/ResNet_Nfold.pt 모델들을 불러와 이를 기반으로 test set의 성능을 평가하고 confusion matrix 이미지를 저장합니다.
+main_loadmodel 함수는 checkpoint/ResNet_Nfold.pt 모델들을 불러와 이를 기반으로 test set의 성능을 평가하고\
+confusion matrix 이미지를 저장합니다.
 
 main_finetune 함수는 imagenet-21k pretrained VisionTransformer 모델을 기반으로 느티나무 질병데이터를 이용해 모델을 finetuning하며,\
 학습된 kfold 모델을 checkpoint/VisionTransformer_Nfold.pt의 형태로 저장합니다.
 
-main_finetuneWithPlantVillage 함수는 imagenet-21k pretrained VisionTransformer 모델을 PlantVillage 데이터셋에 대해 finetuning하여 cheeckpoint/VisionTransformer_PlantVillage.pt로 저장하고,\
-해당 모델을 기반으로 느티나무 질병데이터에 대해 kfold finetuning을 진행하여 학습된 모델을 checkpoint/VisionTransformer_Nfold.pt의 형태로 저장합니다.
+main_finetuneWithPlantVillage 함수는 imagenet-21k pretrained VisionTransformer 모델을 PlantVillage 데이터셋에 대해 finetuning하여\
+cheeckpoint/VisionTransformer_PlantVillage.pt로 저장하고, 해당 모델을 기반으로 느티나무 질병데이터에 대해 kfold finetuning을 진행하여\
+학습된 모델을 checkpoint/VisionTransformer_Nfold.pt의 형태로 저장합니다.
 
 main_load_finetunedmodel은 함수는 input bool값에 따라\
-False인경우 checkpoint/finetune/VisionTransformer_Nfold.pt 모델들을 불러와 이를 기반으로 test set의 성능을 평가하고 confusion matrix 이미지를 저장합니다.\
-True인 경우 checkpoint/finetunePlantVillage/VisionTransformer_Nfold.pt 모델들을 불러와 이를 기반으로 test set의 성능을 평가하고 confusion matrix 이미지를 저장합니다.
+False인경우 checkpoint/finetune/VisionTransformer_Nfold.pt 모델들을 불러와 이를 기반으로 test set의 성능을 평가하고\
+confusion matrix 이미지를 저장합니다.\
+True인 경우 checkpoint/finetunePlantVillage/VisionTransformer_Nfold.pt 모델들을 불러와 이를 기반으로 test set의 성능을 평가하고\
+confusion matrix 이미지를 저장합니다.
 
 main.py 파일의 맨끝에 위치한 `if __name__=="__main__":` 문에서 실행하고자 하는 함수만을 주석해제한뒤 main.py를 실행하거나,\
 다른 파일에서 `from main import main_load_finetunedmodel`과 같이 함수를 import하여 함수를 실행할 수 있습니다.
