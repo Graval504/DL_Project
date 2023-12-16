@@ -48,7 +48,7 @@ main_finetune 함수는 imagenet-21k pretrained VisionTransformer 모델을 기�
 모델을 finetuning하며, 학습된 kfold 모델을 checkpoint/VisionTransformer_Nfold.pt의 형태로 저장합니다.
 
 main_finetuneWithPlantVillage 함수는 imagenet-21k pretrained VisionTransformer 모델을\
-PlantVillage 데이터셋에 대해 finetuning하여 cheeckpoint/VisionTransformer_PlantVillage.pt로 저장하고,
+PlantVillage 데이터셋에 대해 finetuning하여 cheeckpoint/VisionTransformer_PlantVillage.pt로 저장하고,\
 해당 모델을 기반으로 느티나무 질병데이터에 대해 kfold finetuning을 진행하여\
 학습된 모델을 checkpoint/VisionTransformer_Nfold.pt의 형태로 저장합니다.
 
