@@ -8,6 +8,7 @@
 
 ![](./data.jpg)
 
+발표 자료 (제작중) : https://www.miricanvas.com/v/12pa3cl
 ## Introduction
 ### 왜 나무 질병에 대해 연구해야하는가?
 
