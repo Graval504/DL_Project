@@ -1,4 +1,0 @@
-*.pt filter=lfs diff=lfs merge=lfs -text
-checkpoint/*.pt filter=lfs diff=lfs merge=lfs -text
-checkpoint/finetune/*.pt filter=lfs diff=lfs merge=lfs -text
-checkpoint/finetunePlantVillage/*.pt filter=lfs diff=lfs merge=lfs -text
